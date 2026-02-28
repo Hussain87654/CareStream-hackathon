@@ -1,107 +1,119 @@
 import React, { useState } from 'react';
+import { auth, db } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogIn, Mail, Lock, Activity, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Mail, Lock, LogIn, Activity, ArrowRight } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate('/dashboard');
+      // 1. Firebase Auth se login karein
+      const res = await signInWithEmailAndPassword(auth, email, password);
+      
+      // 2. Login hote hi foran Firestore se is user ka role check karein
+      const userDoc = await getDoc(doc(db, "users", res.user.uid));
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        console.log("User Logged In with Role:", userData.role);
+        
+        // Success Message
+        alert(`Welcome back, ${userData.name}!`);
+        
+        // 3. Dashboard par navigate karein
+        // Dashboard khud hi role dekh kar buttons change kar dega
+        navigate('/dashboard');
+      } else {
+        alert("User data not found in database!");
+      }
     } catch (err) {
-      setError("Invalid email or password. Please try again.");
+      console.error(err);
+      alert("Login Error: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-      {/* Background Decorative Circles */}
-      <div className="absolute top-0 left-0 w-64 h-64 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
-      <div className="absolute bottom-0 right-0 w-64 h-64 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
-
-      <div className="bg-white/80 backdrop-blur-lg w-full max-w-md p-10 rounded-3xl shadow-2xl border border-white relative z-10">
+    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 font-sans">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="max-w-md w-full bg-white rounded-[3rem] shadow-2xl shadow-blue-100 p-10 border border-slate-100"
+      >
+        {/* Logo Section */}
         <div className="text-center mb-10">
-          <div className="flex justify-center mb-4">
-            <div className="bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-200">
-              <Activity className="text-white" size={32} />
-            </div>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-3xl text-white shadow-xl shadow-blue-200 mb-4">
+            <Activity size={32} />
           </div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">Welcome Back</h2>
-          <p className="text-slate-500 mt-2 font-medium">Enter your credentials to access HMS</p>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase">CareStream</h1>
+          <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em] mt-2 italic">Access your medical portal</p>
         </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-r-lg">
-            {error}
-          </div>
-        )}
-
         <form onSubmit={handleLogin} className="space-y-6">
-          {/* Email Input */}
+          {/* Email Field */}
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700 ml-1">Email Address</label>
-            <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={20} />
+            <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Email Address</label>
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
                 type="email" 
-                placeholder="doctor@carestream.com"
-                className="w-full pl-12 pr-4 py-4 bg-slate-100/50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium" 
-                onChange={(e) => setEmail(e.target.value)} 
-                required 
+                required
+                placeholder="admin@carestream.com"
+                // text-black aur font-bold yahan set hai
+                className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-black placeholder:text-slate-400 transition-all"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
           </div>
 
-          {/* Password Input */}
+          {/* Password Field */}
           <div className="space-y-2">
-            <div className="flex justify-between items-center ml-1">
-              <label className="text-sm font-bold text-slate-700">Password</label>
-              <a href="#" className="text-xs font-semibold text-blue-600 hover:underline">Forgot?</a>
-            </div>
-            <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={20} />
+            <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Password</label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
                 type="password" 
+                required
                 placeholder="••••••••"
-                className="w-full pl-12 pr-4 py-4 bg-slate-100/50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium" 
-                onChange={(e) => setPassword(e.target.value)} 
-                required 
+                className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-black placeholder:text-slate-400 transition-all"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
           </div>
 
+          {/* Login Button */}
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 flex items-center justify-center gap-2 group disabled:bg-blue-400"
+            className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-blue-600 transition-all shadow-xl shadow-slate-200 mt-2 group"
           >
-            {loading ? "Authenticating..." : "Sign In"}
-            {!loading && <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />}
+            {loading ? "Verifying..." : (
+              <>
+                Sign In <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
           </button>
         </form>
 
-        {/* Link to Register Page */}
-        <div className="mt-8 text-center">
-          <p className="text-slate-500 font-medium">
-            Don't have an account?{" "}
-            <Link to="/register" className="text-blue-600 font-bold hover:underline decoration-2 underline-offset-4">
-              Create Account
-            </Link>
+        <div className="text-center mt-8">
+          <p className="text-sm font-bold text-slate-400">
+            Don't have an account? <Link to="/register" className="text-blue-600 hover:underline">Register Now</Link>
           </p>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

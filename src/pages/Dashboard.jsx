@@ -6,7 +6,9 @@ import { signOut } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Users, Calendar, FileText, 
-  LogOut, Plus, Activity, Bell, UserPlus, Clock, ChevronRight
+  LogOut, Plus, Activity, Bell, UserPlus, Clock, 
+  ChevronRight, ShieldCheck, Shield
+  
 } from 'lucide-react';
 
 // Components - Ensure these files exist in src/components/
@@ -15,7 +17,7 @@ import BookAppointment from '../components/BookAppointment';
 import PatientTable from '../components/PatientTable';
 import PatientAppointments from '../components/PatientAppointments';
 import AppointmentTable from '../components/AppointmentTable';
-
+import AdminPanel from './AdminPanel';
 const Dashboard = () => {
   const { user } = useAuth(); 
   const navigate = useNavigate();
@@ -30,11 +32,14 @@ const Dashboard = () => {
   };
 
   // Sidebar Menu based on Role
-  const menuItems = [
-    { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} />, roles: ['doctor', 'receptionist', 'patient'] },
-    { id: 'patients', label: 'Patient List', icon: <Users size={20} />, roles: ['doctor', 'receptionist'] },
-    { id: 'appointments', label: 'Appointments', icon: <Calendar size={20} />, roles: ['doctor', 'receptionist', 'patient'] },
-  ];
+  // Sidebar menu items ke paas ye condition check karo
+const menuItems = [
+  { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} />, roles: ['doctor', 'receptionist', 'patient', 'admin'] },
+  { id: 'patients', label: 'Patient List', icon: <Users size={20} />, roles: ['doctor', 'receptionist', 'admin'] },
+  { id: 'appointments', label: 'Appointments', icon: <Calendar size={20} />, roles: ['doctor', 'receptionist', 'patient', 'admin'] },
+  // Admin Panel ka option sirf admin ko dikhega
+  { id: 'admin-panel', label: 'Admin Panel', icon: <ShieldCheck size={20} />, roles: ['admin'] }, 
+];
 
   const filteredMenu = menuItems.filter(item => item.roles.includes(role));
 
