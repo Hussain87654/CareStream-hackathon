@@ -3,13 +3,12 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDl-QFF9GgIPLUIEWNRF4TU0VbFFBi-KhU",
-  authDomain: "hackathon-8dc25.firebaseapp.com",
-  projectId: "hackathon-8dc25",
-  storageBucket: "hackathon-8dc25.firebasestorage.app",
-  messagingSenderId: "238845263979",
-  appId: "1:238845263979:web:bd41aae7a438b6fe9db12e",
-  measurementId: "G-01CKSWN8CL"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);

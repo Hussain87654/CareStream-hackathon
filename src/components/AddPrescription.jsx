@@ -1,13 +1,24 @@
 import React, { useState } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
-import { FilePlus, Edit3, Pill, Save, Zap } from 'lucide-react';
+import { checkMedicationSafety } from '../services/aiService';
+import { FilePlus, ShieldAlert, Brain, Save, Loader2 } from 'lucide-react';
 
-const AddPrescription = ({ patientId, patientName }) => {
+const AddPrescription = ({ patientId, patientName, patientHistory }) => {
   const [data, setData] = useState({ diagnosis: '', medicines: '', instructions: '' });
   const [loading, setLoading] = useState(false);
+  const [aiWarning, setAiWarning] = useState(null);
+  const [checking, setChecking] = useState(false);
 
-  const handlePrescribe = async (e) => {
+  const runSafetyCheck = async () => {
+    if (!data.medicines) return alert("Enter medicines first.");
+    setChecking(true);
+    const result = await checkMedicationSafety(data.medicines, patientHistory || "General History");
+    setAiWarning(result);
+    setChecking(false);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -15,66 +26,60 @@ const AddPrescription = ({ patientId, patientName }) => {
         patientId,
         patientName,
         ...data,
+        aiSafetyNote: aiWarning,
         date: new Date().toLocaleDateString(),
-        timestamp: new Date().toISOString()
       });
-      alert("PRESCRIPTION ENCRYPTED & SAVED.");
+      alert("PRESCRIPTION SAVED TO GRID.");
       setData({ diagnosis: '', medicines: '', instructions: '' });
+      setAiWarning(null);
     } catch (err) {
-      alert("Link Error: Transmission Interrupted.");
+      alert("Uplink Failed.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="bg-slate-900/40 p-10 rounded-[3rem] border border-emerald-500/20 backdrop-blur-xl relative overflow-hidden group">
-      {/* Decorative Glow */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl group-hover:bg-emerald-500/10 transition-all duration-700"></div>
-
-      <div className="flex items-center gap-4 mb-10">
-        <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-500">
-          <Edit3 size={20} />
-        </div>
-        <div>
-          <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">Prescription <span className="text-emerald-500">Pad</span></h3>
-          <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">Patient: {patientName}</p>
-        </div>
+    <div className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-emerald-500/20 backdrop-blur-xl">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-500"><FilePlus size={20}/></div>
+        <h3 className="text-lg font-black text-white uppercase italic tracking-tighter">AI Prescription Pad</h3>
       </div>
 
-      <form onSubmit={handlePrescribe} className="space-y-6">
-        <div className="space-y-1">
-          <label className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] ml-2 italic">Neural Diagnosis</label>
-          <input 
-            type="text" required placeholder="Fever / Critical Condition"
-            className="w-full bg-black/60 border border-emerald-500/10 rounded-2xl p-4 text-xs font-bold text-white outline-none focus:border-emerald-500/50 transition-all placeholder:text-slate-700"
-            value={data.diagnosis} onChange={(e) => setData({...data, diagnosis: e.target.value})}
-          />
-        </div>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <input 
+          type="text" required placeholder="Diagnosis"
+          className="w-full bg-black/40 border border-emerald-500/10 rounded-xl p-4 text-xs font-bold text-white outline-none focus:border-emerald-500/40 transition-all"
+          value={data.diagnosis} onChange={(e) => setData({...data, diagnosis: e.target.value})}
+        />
 
-        <div className="space-y-1">
-          <label className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] ml-2 italic">Active Medication List</label>
-          <textarea 
-            rows="3" required placeholder="1. Panadol (2x daily)&#10;2. Antibiotics"
-            className="w-full bg-black/60 border border-emerald-500/10 rounded-2xl p-4 text-xs font-bold text-white outline-none focus:border-emerald-500/50 transition-all placeholder:text-slate-700 resize-none"
-            value={data.medicines} onChange={(e) => setData({...data, medicines: e.target.value})}
-          ></textarea>
-        </div>
+        <textarea 
+          rows="3" required placeholder="Medicines (e.g. Paracetamol 500mg)"
+          className="w-full bg-black/40 border border-emerald-500/10 rounded-xl p-4 text-xs font-bold text-white outline-none focus:border-emerald-500/40 h-24 resize-none"
+          value={data.medicines} onChange={(e) => setData({...data, medicines: e.target.value})}
+        />
 
-        <div className="space-y-1">
-          <label className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] ml-2 italic">Uplink Instructions</label>
-          <input 
-            type="text" placeholder="Bed rest for 3 days"
-            className="w-full bg-black/60 border border-emerald-500/10 rounded-2xl p-4 text-xs font-bold text-white outline-none focus:border-emerald-500/50 transition-all placeholder:text-slate-700"
-            value={data.instructions} onChange={(e) => setData({...data, instructions: e.target.value})}
-          />
-        </div>
+        {/* AI Safety Button */}
+        <button 
+          type="button" onClick={runSafetyCheck}
+          className="w-full py-2 bg-emerald-500/5 border border-emerald-500/20 text-emerald-500 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/10 transition-all flex items-center justify-center gap-2"
+        >
+          {checking ? <Loader2 size={12} className="animate-spin"/> : <Brain size={12}/>}
+          {checking ? "Scanning Bio-Data..." : "Run AI Safety Protocol"}
+        </button>
+
+        {aiWarning && (
+          <div className={`p-4 rounded-xl border text-[10px] italic ${aiWarning.includes('Nominal') ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/5 border-rose-500/20 text-rose-400'}`}>
+            <p className="font-black mb-1 uppercase tracking-tighter">Analysis Response:</p>
+            {aiWarning}
+          </div>
+        )}
 
         <button 
           type="submit" disabled={loading}
-          className="w-full py-5 bg-emerald-500 text-black rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-3 mt-4"
+          className="w-full py-4 bg-emerald-500 text-black rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/10"
         >
-          {loading ? "ENCRYPTING..." : <><Save size={16}/> COMMIT PRESCRIPTION</>}
+          {loading ? "COMMITTING..." : "SAVE PRESCRIPTION"}
         </button>
       </form>
     </div>

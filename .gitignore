@@ -6,6 +6,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+# .gitignore file ke andar ye line honi chahiye
+.env
+.env.local
+
 
 node_modules
 dist

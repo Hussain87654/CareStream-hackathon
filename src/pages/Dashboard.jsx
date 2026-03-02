@@ -4,6 +4,7 @@ import { auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
+import AIChatbot from '../components/AIChatbot';
 import { 
   LayoutDashboard, Users, Calendar, LogOut, 
   Activity, ShieldCheck, User, Zap, X, PlusCircle
@@ -152,6 +153,7 @@ const Dashboard = () => {
           {activeTab === 'admin-panel' && <AdminPanel />}
           
         </div>
+        <AIChatbot patientData={user} />
       </main>
     </div>
   );
