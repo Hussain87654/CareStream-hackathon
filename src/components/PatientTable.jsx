@@ -1,143 +1,122 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, getDocs, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { Trash2, Eye, User, MoreHorizontal, Search, Filter } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { collection, getDocs } from 'firebase/firestore';
+import { Database, User, Activity, Search, ShieldCheck } from 'lucide-react';
 
-const PatientTable = () => {
+const PatientTable = ({ onPatientSelect }) => {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-    const navigate = useNavigate();
-  // --- Real-time Data Fetching ---
+  // 1. Fetch Patients from Firestore
   useEffect(() => {
-    const q = query(collection(db, "patients"), orderBy("createdAt", "desc"));
-    
-    // onSnapshot use karne se data auto-update hoga bina refresh kiye
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const patientList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setPatients(patientList);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    const fetchPatients = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "patients"));
+        const patientsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setPatients(patientsList);
+      } catch (err) {
+        console.error("Database Error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPatients();
   }, []);
 
-  // --- Delete Function ---
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this patient record?")) {
-      try {
-        await deleteDoc(doc(db, "patients", id));
-      } catch (error) {
-        console.error("Error deleting document: ", error);
-      }
-    }
-  };
-
-  // --- Filter Logic ---
+  // 2. Filter Search
   const filteredPatients = patients.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.ailment?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  if (loading) return <div className="text-center py-10 text-slate-500 font-bold tracking-widest animate-pulse">LOADING DATABASE...</div>;
 
   return (
     <div className="space-y-6">
-      {/* Table Toolbar */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6">
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-800" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search by name..." 
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 text-slate-600 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition">
-            <Filter size={16} /> <span className="text-sm font-bold">Filter</span>
-          </button>
-        </div>
+      
+      {/* --- SEARCH BAR --- */}
+      <div className="relative group">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500/30 group-focus-within:text-emerald-500 transition-colors" size={16} />
+        <input 
+          type="text" 
+          placeholder="Filter Subject by Name or Ailment..."
+          className="w-full pl-12 pr-4 py-4 bg-black/40 border border-emerald-500/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400 outline-none focus:border-emerald-500/30 transition-all placeholder:text-slate-700 shadow-inner"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
-      {/* Actual Table */}
-      <div className="overflow-x-auto rounded-3xl border border-slate-100">
+      {/* --- DATA TABLE --- */}
+      <div className="overflow-hidden rounded-[2.5rem] border border-emerald-500/10 bg-slate-900/20 backdrop-blur-md shadow-2xl">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-50/50 text-slate-400 text-[10px] uppercase tracking-[0.2em]">
-              <th className="p-5 font-black">Patient Identity</th>
-              <th className="p-5 font-black">Basic Info</th>
-              <th className="p-5 font-black">Medical Status</th>
-              <th className="p-5 font-black text-center">Actions</th>
+            <tr className="bg-emerald-500/5 border-b border-emerald-500/10">
+              <th className="p-6 text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500 italic">Subject Identity</th>
+              <th className="p-6 text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500 italic">Biological Ailment</th>
+              <th className="p-6 text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500 italic text-right">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50">
-            <AnimatePresence>
-              {filteredPatients.length > 0 ? (
-                filteredPatients.map((p) => (
-                  <motion.tr 
-                    key={p.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="group hover:bg-blue-50/30 transition-all duration-300"
-                  >
-                    <td className="p-5">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold shadow-sm group-hover:scale-110 transition-transform">
-                          {p.name.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="font-black text-slate-800 text-sm leading-none mb-1">{p.name}</p>
-                          <p className="text-[10px] text-slate-400 font-bold">ID: {p.id.slice(0, 8)}</p>
-                        </div>
+          <tbody className="divide-y divide-emerald-500/5">
+            {loading ? (
+              <tr>
+                <td colSpan="3" className="p-20 text-center">
+                  <div className="flex flex-col items-center gap-4">
+                    <Activity className="text-emerald-500 animate-pulse" size={32} />
+                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em] animate-pulse">Syncing Neural Database...</p>
+                  </div>
+                </td>
+              </tr>
+            ) : filteredPatients.length > 0 ? (
+              filteredPatients.map((p) => (
+                <tr 
+                  key={p.id} 
+                  // YE CLICK LOGIC HAI: Dashboard ko batata hai kaunsa patient select hua
+                  onClick={() => onPatientSelect && onPatientSelect(p)}
+                  className="hover:bg-emerald-500/5 cursor-pointer transition-all group border-l-4 border-transparent hover:border-emerald-500"
+                >
+                  <td className="p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-black/50 border border-emerald-500/10 flex items-center justify-center text-emerald-500/40 group-hover:text-emerald-500 group-hover:border-emerald-500/40 transition-all">
+                        <User size={18} />
                       </div>
-                    </td>
-                    <td className="p-5">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-slate-600">{p.age} Years</span>
-                        <span className="text-[10px] text-slate-400 font-medium uppercase">{p.gender}</span>
+                      <div>
+                        <p className="font-black text-white text-sm tracking-tighter uppercase italic group-hover:text-emerald-400 transition-colors">{p.name}</p>
+                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Age: {p.age}y // Node: {p.id.slice(0,6)}</p>
                       </div>
-                    </td>
-                    <td className="p-5">
-                      <span className="px-3 py-1 bg-emerald-100 text-emerald-600 text-[10px] font-black rounded-full uppercase">
-                        Stable
-                      </span>
-                    </td>
-                    <td className="p-5">
-                      <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => navigate(`/patient/${p.id}`)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm bg-white border border-slate-100">
-                          <Eye size={18} />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(p.id)}
-                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all shadow-sm bg-white border border-slate-100"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                        <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-xl">
-                          <MoreHorizontal size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="4" className="p-10 text-center text-slate-400 font-bold uppercase tracking-widest">
-                    No records found
+                    </div>
+                  </td>
+                  <td className="p-6">
+                    <p className="text-xs font-bold text-slate-400 italic uppercase tracking-tight group-hover:text-slate-200 transition-colors">
+                      {p.ailment}
+                    </p>
+                  </td>
+                  <td className="p-6 text-right">
+                    <span className="px-4 py-1.5 bg-emerald-500/5 border border-emerald-500/20 text-emerald-500 rounded-full text-[8px] font-black uppercase tracking-[0.2em] shadow-[0_0_15px_rgba(16,185,129,0.05)] group-hover:shadow-[0_0_20px_rgba(16,185,129,0.2)] transition-all">
+                      {p.status || 'Verified'}
+                    </span>
                   </td>
                 </tr>
-              )}
-            </AnimatePresence>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="3" className="p-20 text-center font-black text-slate-700 uppercase tracking-widest text-[10px]">
+                  No Matching Identity Found in Grid.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
+      </div>
+
+      {/* --- FOOTER STATUS --- */}
+      <div className="flex items-center justify-between px-8 py-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+          <Database size={14} className="text-emerald-500" />
+          <span className="text-[9px] font-black uppercase text-emerald-500/60 tracking-[0.3em]">Secure Grid Connections: {filteredPatients.length}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></div>
+          <span className="text-[9px] font-black uppercase text-slate-600 tracking-widest italic">Live Uplink Active</span>
+        </div>
       </div>
     </div>
   );

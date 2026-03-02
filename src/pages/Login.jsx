@@ -4,115 +4,85 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, LogIn, Activity, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Activity, ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      // 1. Firebase Auth se login karein
       const res = await signInWithEmailAndPassword(auth, email, password);
-      
-      // 2. Login hote hi foran Firestore se is user ka role check karein
       const userDoc = await getDoc(doc(db, "users", res.user.uid));
-      
       if (userDoc.exists()) {
-        const userData = userDoc.data();
-        console.log("User Logged In with Role:", userData.role);
-        
-        // Success Message
-        alert(`Welcome back, ${userData.name}!`);
-        
-        // 3. Dashboard par navigate karein
-        // Dashboard khud hi role dekh kar buttons change kar dega
         navigate('/dashboard');
-      } else {
-        alert("User data not found in database!");
       }
     } catch (err) {
-      console.error(err);
-      alert("Login Error: " + err.message);
+      alert("Access Denied: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 font-sans">
+    <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Background Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-125 h-125 bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none"></div>
+
       <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-md w-full bg-white rounded-[3rem] shadow-2xl shadow-blue-100 p-10 border border-slate-100"
+        className="max-w-md w-full bg-slate-900/40 border border-emerald-500/20 backdrop-blur-xl rounded-[3rem] p-10 shadow-2xl relative z-10"
       >
-        {/* Logo Section */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-3xl text-white shadow-xl shadow-blue-200 mb-4">
-            <Activity size={32} />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-500 rounded-2xl text-black mb-4 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+            <ShieldCheck size={32} />
           </div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase">CareStream</h1>
-          <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em] mt-2 italic">Access your medical portal</p>
+          <h1 className="text-3xl font-black text-white uppercase tracking-tighter italic">System <span className="text-emerald-500">Access</span></h1>
+          <p className="text-emerald-500/50 font-black text-[9px] uppercase tracking-[0.3em] mt-2">Authorization Required</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
-          {/* Email Field */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Email Address</label>
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <label className="text-[9px] font-black text-emerald-500 uppercase ml-2 tracking-widest">Uplink ID (Email)</label>
+            <div className="relative group">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500/40 group-focus-within:text-emerald-500 transition-colors" size={18} />
               <input 
-                type="email" 
-                required
-                placeholder="admin@carestream.com"
-                // text-black aur font-bold yahan set hai
-                className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-black placeholder:text-slate-400 transition-all"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="email" required placeholder="name@domain.com"
+                className="w-full pl-12 pr-4 py-4 bg-black/40 border border-emerald-500/10 rounded-2xl outline-none focus:border-emerald-500/50 font-bold text-white placeholder:text-slate-700 transition-all shadow-inner"
+                value={email} onChange={(e) => setEmail(e.target.value)}
               />
             </div>
           </div>
 
-          {/* Password Field */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <label className="text-[9px] font-black text-emerald-500 uppercase ml-2 tracking-widest">Security Key (Password)</label>
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500/40 group-focus-within:text-emerald-500 transition-colors" size={18} />
               <input 
-                type="password" 
-                required
-                placeholder="••••••••"
-                className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-black placeholder:text-slate-400 transition-all"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                type={showPassword ? "text" : "password"} required placeholder="••••••••"
+                className="w-full pl-12 pr-12 py-4 bg-black/40 border border-emerald-500/10 rounded-2xl outline-none focus:border-emerald-500/50 font-bold text-white placeholder:text-slate-700 transition-all shadow-inner"
+                value={password} onChange={(e) => setPassword(e.target.value)}
               />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500/40 hover:text-emerald-400 transition-colors">
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 
-          {/* Login Button */}
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-blue-600 transition-all shadow-xl shadow-slate-200 mt-2 group"
-          >
-            {loading ? "Verifying..." : (
-              <>
-                Sign In <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </>
-            )}
+          <button type="submit" disabled={loading} className="w-full bg-emerald-500 text-black py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all mt-4 disabled:opacity-50">
+            {loading ? "Decrypting..." : <>Initialize Login <ArrowRight size={16} /></>}
           </button>
         </form>
 
-        <div className="text-center mt-8">
-          <p className="text-sm font-bold text-slate-400">
-            Don't have an account? <Link to="/register" className="text-blue-600 hover:underline">Register Now</Link>
-          </p>
-        </div>
+        <p className="text-center mt-8 text-[10px] font-black uppercase tracking-widest text-slate-500">
+          New Node? <Link to="/register" className="text-emerald-500 hover:underline">Register Identity</Link>
+        </p>
       </motion.div>
     </div>
   );

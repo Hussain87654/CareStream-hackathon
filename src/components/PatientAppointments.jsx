@@ -1,87 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ShieldAlert, CalendarCheck, Clock } from 'lucide-react';
 
 const PatientAppointments = () => {
   const { user } = useAuth();
-  const [appointments, setAppointments] = useState([]);
+  const [myAppts, setMyAppts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.uid) return;
-
-    // Sirf is specific logged-in patient ki appointments lana
-   const q = query(
-  collection(db, "appointments"),
-  where("patientId", "==", user.uid), // Ye user.uid logged-in patient ki hai
-  orderBy("createdAt", "desc")
-);
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setAppointments(list);
+    const fetchMyAppts = async () => {
+      // Logic: Apne name se match hone wali appointments filter karo
+      const q = query(collection(db, "appointments"), where("patientName", "==", user?.name));
+      const querySnapshot = await getDocs(q);
+      setMyAppts(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setLoading(false);
-    });
-
-    return () => unsubscribe();
+    };
+    if(user?.name) fetchMyAppts();
   }, [user]);
 
-  if (loading) return <div className="p-10 text-center text-slate-400 font-bold animate-pulse">SYNCING APPOINTMENTS...</div>;
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xl font-black text-slate-800 tracking-tight">MY APPOINTMENTS</h3>
-        <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">
-          {appointments.length} Total
-        </span>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4">
-        {appointments.length === 0 ? (
-          <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-4xl p-12 text-center">
-            <Calendar className="mx-auto text-slate-300 mb-4" size={40} />
-            <p className="text-slate-500 font-bold">No appointments found.</p>
-            <p className="text-slate-400 text-xs">Your scheduled visits will appear here.</p>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {loading ? (
+        <div className="col-span-full p-20 text-center font-black text-slate-700 uppercase animate-pulse">Scanning Neural Network...</div>
+      ) : myAppts.length > 0 ? (
+        myAppts.map((appt) => (
+          <div key={appt.id} className="bg-slate-900/40 border border-emerald-500/10 p-6 rounded-4xl hover:border-emerald-500/40 transition-all shadow-xl backdrop-blur-sm group">
+             <div className="flex items-center justify-between mb-6">
+               <CalendarCheck className="text-emerald-500 group-hover:scale-110 transition-transform" size={24}/>
+               <span className="text-[8px] font-black uppercase text-emerald-500 border border-emerald-500/20 px-3 py-1 rounded-full">Active Schedule</span>
+             </div>
+             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Appointment On</p>
+             <h4 className="text-xl font-black text-white italic tracking-tighter mb-4 underline decoration-emerald-500/20">{appt.date}</h4>
+             <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase">
+               <Clock size={14} className="text-emerald-500"/> {appt.time}
+             </div>
           </div>
-        ) : (
-          appointments.map((app, index) => (
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              key={app.id} 
-              className="bg-white p-6 rounded-4xl border border-slate-100 shadow-sm flex items-center justify-between group hover:border-blue-200 transition-all"
-            >
-              <div className="flex items-center gap-5">
-                <div className="bg-slate-50 p-4 rounded-2xl text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                  <Clock size={24} />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Doctor</p>
-                  <p className="font-black text-slate-800">{app.doctorName}</p>
-                  <p className="text-xs font-bold text-slate-500 mt-1 flex items-center gap-1">
-                    <Calendar size={12} /> {app.date}
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-right">
-                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tighter shadow-sm ${
-                  app.status === 'confirmed' 
-                  ? 'bg-emerald-100 text-emerald-600' 
-                  : 'bg-orange-100 text-orange-600'
-                }`}>
-                  {app.status || 'Scheduled'}
-                </span>
-              </div>
-            </motion.div>
-          ))
-        )}
-      </div>
+        ))
+      ) : (
+        <div className="col-span-full bg-slate-900/20 border-2 border-dashed border-emerald-500/10 p-20 rounded-[3rem] text-center">
+          <ShieldAlert className="mx-auto text-emerald-500/20 mb-4" size={48}/>
+          <p className="text-slate-500 font-black uppercase tracking-widest text-xs">No Active Uplinks Found For Your Identity.</p>
+        </div>
+      )}
     </div>
   );
 };

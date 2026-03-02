@@ -4,14 +4,11 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Mail, Lock, ArrowRight, Activity } from 'lucide-react';
+import { User, Mail, Lock, ArrowRight, Activity, Eye, EyeOff, UserPlus } from 'lucide-react';
 
 const Register = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-  });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -19,108 +16,82 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      // 1. Firebase Auth mein user create karein
       const res = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      
-      // 2. Firestore mein user ka data aur DEFAULT ROLE 'patient' save karein
       await setDoc(doc(db, "users", res.user.uid), {
         uid: res.user.uid,
         name: formData.name,
         email: formData.email,
-        role: 'patient', // Role input hat gaya, ab by default patient hi hoga
+        role: 'patient',
         createdAt: new Date().toISOString()
       });
-
-      alert("Account Created Successfully! Redirecting to Dashboard...");
       navigate('/dashboard');
     } catch (err) {
-      alert("Error: " + err.message);
+      alert("Registration Failed: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full bg-white rounded-[3rem] shadow-2xl shadow-blue-100 p-10 border border-slate-100"
-      >
-        {/* Logo & Header */}
+    <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6 relative overflow-hidden font-sans">
+      <div className="absolute bottom-0 right-0 w-100 h-100 bg-emerald-600/5 blur-[120px] rounded-full pointer-events-none"></div>
+
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-md w-full bg-slate-900/40 border border-emerald-500/20 backdrop-blur-xl rounded-[3rem] p-10 shadow-2xl relative z-10">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-3xl text-white shadow-xl shadow-blue-200 mb-4">
-            <Activity size={32} />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-500 mb-4 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+            <UserPlus size={32} />
           </div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tighter uppercase">Join CareStream</h1>
-          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mt-2">Create your medical account</p>
+          <h1 className="text-3xl font-black text-white uppercase tracking-tighter italic">Create <span className="text-emerald-500">Identity</span></h1>
+          <p className="text-emerald-500/50 font-black text-[9px] uppercase tracking-[0.3em] mt-2">Joining the Neural Grid</p>
         </div>
 
         <form onSubmit={handleRegister} className="space-y-5">
-          {/* Full Name Input */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Full Name</label>
-            <div className="relative">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <label className="text-[9px] font-black text-emerald-500 uppercase ml-2 tracking-widest">Full Alias (Name)</label>
+            <div className="relative group">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500/40 group-focus-within:text-emerald-500 transition-colors" size={18} />
               <input 
-                type="text" 
-                required
-                placeholder="John Doe"
-                className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-700 transition-all"
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                type="text" required placeholder="Enter Full Name"
+                className="w-full pl-12 pr-4 py-4 bg-black/40 border border-emerald-500/10 rounded-2xl outline-none focus:border-emerald-500/50 font-bold text-white placeholder:text-slate-700 transition-all"
+                value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})}
               />
             </div>
           </div>
 
-          {/* Email Input */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Email Address</label>
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <label className="text-[9px] font-black text-emerald-500 uppercase ml-2 tracking-widest">Uplink Address</label>
+            <div className="relative group">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500/40 group-focus-within:text-emerald-500 transition-colors" size={18} />
               <input 
-                type="email" 
-                required
-                placeholder="name@example.com"
-                className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-700 transition-all"
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                type="email" required placeholder="email@example.com"
+                className="w-full pl-12 pr-4 py-4 bg-black/40 border border-emerald-500/10 rounded-2xl outline-none focus:border-emerald-500/50 font-bold text-white placeholder:text-slate-700 transition-all"
+                value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})}
               />
             </div>
           </div>
 
-          {/* Password Input */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <label className="text-[9px] font-black text-emerald-500 uppercase ml-2 tracking-widest">New Security Key</label>
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500/40 group-focus-within:text-emerald-500 transition-colors" size={18} />
               <input 
-                type="password" 
-                required
-                placeholder="••••••••"
-                className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-700 transition-all"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                type={showPassword ? "text" : "password"} required placeholder="••••••••"
+                className="w-full pl-12 pr-12 py-4 bg-black/40 border border-emerald-500/10 rounded-2xl outline-none focus:border-emerald-500/50 font-bold text-white placeholder:text-slate-700 transition-all"
+                value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})}
               />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500/40">
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 
-          {/* Submit Button */}
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-blue-600 transition-all shadow-xl shadow-slate-200 mt-4 group"
-          >
-            {loading ? "Registering..." : (
-              <>
-                Create Account <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </>
-            )}
+          <button type="submit" disabled={loading} className="w-full bg-emerald-500 text-black py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all mt-4">
+            {loading ? "Encrypting..." : <>Establish Identity <ArrowRight size={16} /></>}
           </button>
         </form>
 
-        <p className="text-center mt-8 text-sm font-bold text-slate-400">
-          Already have an account? <Link to="/login" className="text-blue-600 hover:underline">Sign In</Link>
+        <p className="text-center mt-8 text-[10px] font-black uppercase tracking-widest text-slate-500">
+          Already Active? <Link to="/login" className="text-emerald-500 hover:underline">Return to Login</Link>
         </p>
       </motion.div>
     </div>
